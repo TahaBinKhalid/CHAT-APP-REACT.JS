@@ -296,3 +296,59 @@ const App = () => {
 };
 
 export default App;
+
+
+
+/* Option 1 — Relax rules for testing (not safe for production)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/chat_messages/{messageId} {
+      allow read, write: if true; // anyone can read/write
+    }
+  }
+}
+
+
+This makes your chat publicly writable — good for quick tests, but not secure.
+
+Option 2 — Require authentication (better)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/chat_messages/{messageId} {
+      allow read, write: if request.auth != null; // must be signed in (anonymous or real)
+    }
+  }
+}
+
+
+This way, only signed-in users (including anonymous ones) can interact.
+
+Option 3 — Stricter (recommended for real apps)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/chat_messages/{messageId} {
+      allow read: if true; // anyone can read
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      allow delete: if false; // nobody can delete
+    }
+  }
+}
+
+
+This ensures:
+
+Everyone can read the chat.
+
+Only authenticated users can write messages.
+
+A user can only write messages as themselves.
+
+🚦 Why your listener failed first
+
+The error happens because Firestore doesn’t retry failed snapshots automatically when auth changes. It just says “denied” once.
+That’s why in the fixed code I showed you, I made the listener wait until authReady → so your very first Firestore query goes out with a real user attached. 
+*/
